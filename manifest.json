@@ -1,12 +1,25 @@
 {
-  "background_color": "#000000",
-  "dir": "ltr",
-  "display": "standalone",
   "name": "GPS Camera Pro",
-  "orientation": "portrait",
-  "scope": "/",
   "short_name": "GPS Camera",
-  "start_url": "/",
+  "description": "GPS Map Camera with live coordinates and address stamping.",
+  "start_url": "/gps-camera/",
+  "scope": "/gps-camera/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
   "theme_color": "#000000",
-  "description": "GPS Map Camera with live coordinates and address stamping."
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
