@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>GPS Camera Pro</title>
+    <link rel="manifest" href="manifest.json" />
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      html, body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        color: #fff;
+        position: fixed;
+      }
+
+      #viewfinder-container {
+        position: absolute;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+        z-index: 1;
+      }
+
+      #video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        display: block;
+        background: #000;
+      }
+
+      #flash-overlay {
+        position: absolute;
+        inset: 0;
+        background: #fff;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 99;
+        transition: opacity 0.08s ease-out;
+      }
+      #flash-overlay.flashing { opacity: 0.95; }
+
+      /* Top Header */
+      #top-bar {
+        position: absolute;
+        top: env(safe-area-inset-top, 12px);
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 20;
+      }
+      .badge-btn {
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 9999px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .dot-green {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+      }
+
+      /* Live Viewfinder Stamp Template */
+      #live-stamp-card {
+        position: absolute;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 120px);
+        left: 12px;
+        right: 12px;
+        background: rgba(15, 20, 28, 0.88);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 8px;
+        display: flex;
+        gap: 10px;
+        z-index: 20;
+        pointer-events: none;
+      }
+
+      .map-tile-box {
+        width: 86px;
+        height: 86px;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        flex-shrink: 0;
+        background: #222;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .map-tile-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .map-pin-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 16px;
+        height: 16px;
+        background: #ef4444;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+      }
+      .map-watermark {
+        position: absolute;
+        bottom: 2px;
+        left: 4px;
+        font-size: 8px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      }
+
+      .stamp-text-col {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        overflow: hidden;
+      }
+      .stamp-city-line {
+        font-size: 15px;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .stamp-addr-line {
+        font-size: 11px;
+        color: #e2e8f0;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .stamp-meta-item {
+        font-size: 11px;
+        color: #cbd5e1;
+      }
+      .stamp-note-item {
+        font-size: 10.5px;
+        color: #94a3b8;
+      }
+
+      /* Bottom Control Hub */
+      #bottom-bar {
+        position: absolute;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+        left: 0;
+        right: 0;
+        height: 90px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 50;
+      }
+      #shutter-btn {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        background: #fff;
+        border: 4px solid rgba(255, 255, 255, 0.4);
+        outline: none;
+        cursor: pointer;
+      }
+      #shutter-btn:active {
+        transform: scale(0.92);
+        background: #f1f5f9;
+      }
+
+      .icon-btn {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      /* Preview Modal */
+      #preview-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 100;
+        display: none;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 24px 18px calc(env(safe-area-inset-bottom, 0px) + 20px) 18px;
+      }
+      #preview-modal.open { display: flex; }
+      #preview-img {
+        max-width: 100%;
+        max-height: 78vh;
+        object-fit: contain;
+        border-radius: 12px;
+        margin: auto;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+      }
+      .btn-action {
+        flex: 1;
+        padding: 14px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .btn-save { background: #10b981; color: #fff; }
+      .btn-retake { background: #334155; color: #fff; }
+
+      #capture-canvas, #map-fetch-canvas { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="viewfinder-container">
+      <video id="video" autoplay playsinline webkit-playsinline muted></video>
+      <div id="flash-overlay"></div>
+    </div>
+
+    <!-- Top Info -->
+    <div id="top-bar">
+      <div class="badge-btn">
+        <span class="dot-green"></span>
+        <span id="gps-acc">GPS: ±12m</span>
+      </div>
+      <div class="badge-btn" id="compass-badge">🧭 273°</div>
+      <button class="icon-btn" id="torch-btn"><i data-lucide="zap"></i></button>
+    </div>
+
+    <!-- Live Stamping Preview (Matches Store Standard) -->
+    <div id="live-stamp-card">
+      <div class="map-tile-box">
+        <img id="live-map-img" src="" alt="Satellite Map" />
+        <div class="map-pin-center"></div>
+        <div class="map-watermark">Map</div>
+      </div>
+      <div class="stamp-text-col">
+        <div class="stamp-city-line" id="live-city">Kurukshetra, Haryana, India 🇮🇳</div>
+        <div class="stamp-addr-line" id="live-road">Sector 4, Kurukshetra, Haryana 136118</div>
+        <div class="stamp-meta-item" id="live-coords">Lat 29.95857° Long 76.88633°</div>
+        <div class="stamp-meta-item" id="live-datetime">Sunday, 25/10/2026 02:20 PM GMT +05:30</div>
+        <div class="stamp-note-item" id="live-note">Note : Captured by GPS Camera Pro</div>
+      </div>
+    </div>
+
+    <!-- Bottom Shutter -->
+    <div id="bottom-bar">
+      <button class="icon-btn" id="switch-cam"><i data-lucide="switch-camera"></i></button>
+      <button id="shutter-btn" aria-label="Capture"></button>
+      <div style="width: 46px;"></div>
+    </div>
+
+    <!-- Save Preview Modal -->
+    <div id="preview-modal">
+      <img id="preview-img" alt="Captured GPS Photo" />
+      <div class="modal-actions">
+        <button class="btn-action btn-save" id="save-btn">Save to Device</button>
+        <button class="btn-action btn-retake" id="retake-btn">Retake</button>
+      </div>
+    </div>
+
+    <canvas id="capture-canvas"></canvas>
+    <canvas id="map-fetch-canvas"></canvas>
+
+    <script>
+      (function() {
+        const state = {
+          stream: null,
+          videoTrack: null,
+          facingMode: 'environment',
+          gps: {
+            lat: 29.958574,
+            lng: 76.886331,
+            acc: 12,
+            heading: 273,
+            cityTitle: 'Kurukshetra, Haryana, India 🇮🇳',
+            fullAddress: 'Sector 4, Kurukshetra, Haryana 136118, India'
+          },
+          lastBlob: null,
+          mapTileImage: new Image()
+        };
+
+        const video = document.getElementById('video');
+        const shutterBtn = document.getElementById('shutter-btn');
+        const captureCanvas = document.getElementById('capture-canvas');
+        const previewModal = document.getElementById('preview-modal');
+        const previewImg = document.getElementById('preview-img');
+        const liveMapImg = document.getElementById('live-map-img');
+
+        state.mapTileImage.crossOrigin = 'anonymous';
+
+        // Camera Initialization
+        async function startCamera() {
+          if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+          video.muted = true;
+          video.defaultMuted = true;
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', '');
+
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: state.facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+              audio: false
+            });
+            state.stream = stream;
+            state.videoTrack = stream.getVideoTracks()[0];
+            video.srcObject = stream;
+            video.onloadeddata = () => video.play().catch(() => {});
+          } catch (e) {
+            const fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            state.stream = fallback;
+            state.videoTrack = fallback.getVideoTracks()[0];
+            video.srcObject = fallback;
+            video.play().catch(() => {});
+          }
+        }
+
+        // GPS & Reverse Geocoding Engine
+        function startGPS() {
+          if (!('geolocation' in navigator)) return;
+
+          function onPos(p) {
+            const c = p.coords;
+            state.gps.lat = c.latitude;
+            state.gps.lng = c.longitude;
+            state.gps.acc = Math.round(c.accuracy);
+            document.getElementById('gps-acc').textContent = `GPS: ±${state.gps.acc}m`;
+            document.getElementById('live-coords').textContent = `Lat ${c.latitude.toFixed(6)}° Long ${c.longitude.toFixed(6)}°`;
+
+            updateMapTile(c.latitude, c.longitude);
+            fetchAddress(c.latitude, c.longitude);
+          }
+
+          navigator.geolocation.watchPosition(onPos, () => {}, { enableHighAccuracy: true, timeout: 10000 });
+        }
+
+        // Fetch Satellite / Map Tile
+        function updateMapTile(lat, lng) {
+          const zoom = 16;
+          const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
+          const latRad = lat * Math.PI / 180;
+          const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom));
+          const tileUrl = `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+          liveMapImg.src = tileUrl;
+          state.mapTileImage.src = tileUrl;
+        }
+
+        async function fetchAddress(lat, lng) {
+          try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+            if (r.ok) {
+              const d = await r.json();
+              if (d && d.address) {
+                const a = d.address;
+                const city = a.city || a.town || a.county || a.state_district || 'Kurukshetra';
+                const stateName = a.state || 'Haryana';
+                const country = a.country || 'India';
+                const flag = country === 'India' ? '🇮🇳' : '📍';
+
+                state.gps.cityTitle = `${city}, ${stateName}, ${country} ${flag}`;
+                state.gps.fullAddress = [a.road || a.suburb, a.neighbourhood, city, a.postcode, country].filter(Boolean).join(', ');
+
+                document.getElementById('live-city').textContent = state.gps.cityTitle;
+                document.getElementById('live-road').textContent = state.gps.fullAddress;
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Live Date & Time Formatter (Matches Store Format Exactly)
+        function updateLiveTime() {
+          const now = new Date();
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayName = days[now.getDay()];
+          const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+          let hours = now.getHours();
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12 || 12;
+          const timeStr = `${String(hours).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${ampm} GMT +05:30`;
+
+          document.getElementById('live-datetime').textContent = `${dayName}, ${dateStr} ${timeStr}`;
+        }
+
+        // Compass Azimuth
+        window.addEventListener('deviceorientation', (e) => {
+          let h = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading : (e.alpha ? 360 - e.alpha : null);
+          if (h !== null) {
+            state.gps.heading = Math.round(h);
+            document.getElementById('compass-badge').textContent = `🧭 ${state.gps.heading}°`;
+          }
+        }, true);
+
+        // Professional Canvas Stamping (Burning exact layout into final photo)
+        function capturePhoto() {
+          const flash = document.getElementById('flash-overlay');
+          flash.classList.add('flashing');
+          setTimeout(() => flash.classList.remove('flashing'), 100);
+
+          const w = video.videoWidth || 1080;
+          const h = video.videoHeight || 1920;
+          captureCanvas.width = w;
+          captureCanvas.height = h;
+          const ctx = captureCanvas.getContext('2d');
+
+          // Draw the real photo
+          ctx.drawImage(video, 0, 0, w, h);
+
+          // Scaled measurements for high-res output
+          const s = Math.max(w, h) / 1200;
+          const stampH = 150 * s;
+          const stampY = h - stampH - (24 * s);
+          const stampX = 18 * s;
+          const stampW = w - (stampX * 2);
+
+          // Dark Background Plate
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 20, 28, 0.90)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.lineWidth = 1.5 * s;
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(stampX, stampY, stampW, stampH, 14 * s) : ctx.rect(stampX, stampY, stampW, stampH);
+          ctx.fill();
+          ctx.stroke();
+
+          // Map Tile
+          const mapSize = stampH - (20 * s);
+          const mapX = stampX + (10 * s);
+          const mapY = stampY + (10 * s);
+          if (state.mapTileImage.complete && state.mapTileImage.naturalWidth > 0) {
+            ctx.drawImage(state.mapTileImage, mapX, mapY, mapSize, mapSize);
+          } else {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(mapX, mapY, mapSize, mapSize);
+          }
+
+          // Red Map Pin in Center
+          ctx.beginPath();
+          ctx.arc(mapX + (mapSize / 2), mapY + (mapSize / 2), 6 * s, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ef4444';
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2 * s;
+          ctx.stroke();
+
+          // Watermark label on map
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.font = `bold ${9 * s}px sans-serif`;
+          ctx.fillText('Map', mapX + (4 * s), mapY + mapSize - (4 * s));
+
+          // Text Column on Right
+          const textX = mapX + mapSize + (14 * s);
+          let currentY = stampY + (28 * s);
+
+          // Title: Kurukshetra, Haryana, India
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${16 * s}px sans-serif`;
+          ctx.fillText(state.gps.cityTitle, textX, currentY);
+
+          // Subtitle: Full Postal Address
+          currentY += 20 * s;
+          ctx.fillStyle = '#e2e8f0';
+          ctx.font = `${11.5 * s}px sans-serif`;
+          ctx.fillText(state.gps.fullAddress, textX, currentY);
+
+          // Lat/Long
+          currentY += 19 * s;
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = `${11.5 * s}px monospace`;
+          ctx.fillText(`Lat ${state.gps.lat.toFixed(6)}° Long ${state.gps.lng.toFixed(6)}°`, textX, currentY);
+
+          // Date & Time GMT
+          currentY += 19 * s;
+          ctx.font = `${11 * s}px sans-serif`;
+          ctx.fillText(document.getElementById('live-datetime').textContent, textX, currentY);
+
+          // Note Line
+          currentY += 18 * s;
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = `${10.5 * s}px sans-serif`;
+          ctx.fillText('Note : Captured by GPS Camera Pro', textX, currentY);
+
+          ctx.restore();
+
+          // Preview
+          previewImg.src = captureCanvas.toDataURL('image/jpeg', 0.95);
+          captureCanvas.toBlob(b => { state.lastBlob = b; }, 'image/jpeg', 0.95);
+          previewModal.classList.add('open');
+        }
+
+        shutterBtn.addEventListener('click', capturePhoto);
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+          if (!state.lastBlob) return;
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(state.lastBlob);
+          a.download = `GPS_Map_Photo_${Date.now()}.jpg`;
+          a.click();
+          previewModal.classList.remove('open');
+        });
+
+        document.getElementById('retake-btn').addEventListener('click', () => {
+          previewModal.classList.remove('open');
+        });
+
+        document.getElementById('switch-cam').addEventListener('click', () => {
+          state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+          startCamera();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+          if (window.lucide) lucide.createIcons();
+          startCamera();
+          startGPS();
+          updateLiveTime();
+          setInterval(updateLiveTime, 1000);
+        });
+      })();
+    </script>
+  </body>
+</html>
