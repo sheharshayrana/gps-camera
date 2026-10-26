@@ -41,7 +41,7 @@
       overflow: hidden;
     }
 
-    /* Live Viewfinder */
+    /* Viewfinder Layer */
     #viewport {
       position: absolute;
       top: 0;
@@ -60,12 +60,28 @@
       height: 100%;
       object-fit: cover;
     }
-    video.ratio-4-3 {
-      height: auto;
-      aspect-ratio: 3/4;
-    }
     .mirrored {
       transform: scaleX(-1);
+    }
+
+    /* Alignment Grid (Toggled with # button) */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      z-index: 2;
+    }
+    .grid-overlay.active {
+      display: grid;
+    }
+    .grid-line {
+      border: 0.5px solid rgba(255, 255, 255, 0.2);
     }
 
     /* Top Controls Bar */
@@ -121,8 +137,6 @@
       justify-content: center;
       color: #fff;
       cursor: pointer;
-      font-size: 11px;
-      font-weight: 700;
     }
     .icon-btn svg {
       width: 19px;
@@ -134,7 +148,7 @@
       stroke-linejoin: round;
     }
 
-    /* Stamp Card (Strict 2-Tap Position: Bottom or Top) */
+    /* Floating Rounded Card Stamp (2-Tap: Top or Bottom) */
     .stamp-container {
       position: absolute;
       left: 12px;
@@ -151,7 +165,7 @@
     #stamp-card {
       background: rgba(12, 16, 22, 0.88);
       backdrop-filter: blur(14px);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 10px 12px;
       display: flex;
       gap: 12px;
@@ -161,7 +175,7 @@
     .map-box {
       width: 84px;
       height: 84px;
-      border-radius: 8px;
+      border-radius: 10px;
       overflow: hidden;
       flex-shrink: 0;
       position: relative;
@@ -209,7 +223,7 @@
       text-overflow: ellipsis;
       max-width: 100%;
     }
-    /* Dedicated Editable Site Tag */
+    /* Editable Site Line */
     .stamp-custom-tag {
       color: #4cd964;
       font-weight: 600;
@@ -221,22 +235,20 @@
       max-width: 100%;
       user-select: text;
     }
+    /* Fixed Note Line */
     .stamp-note {
       color: #94a3b8;
-      outline: none;
-      border-bottom: 1px dashed rgba(255,255,255,0.2);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      user-select: text;
     }
 
-    /* Mode Selector (Photo / Video) */
+    /* Mode Selector (PHOTO / VIDEO) */
     .mode-selector {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 24px;
       margin-bottom: 6px;
       font-size: 12px;
       font-weight: 700;
@@ -246,7 +258,6 @@
       color: rgba(255,255,255,0.45);
       cursor: pointer;
       padding: 2px 6px;
-      transition: color 0.15s ease;
     }
     .mode-btn.active {
       color: #ffd60a;
@@ -289,8 +300,8 @@
       background: #ff3b30;
     }
     .shutter-btn.recording .shutter-inner {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 6px;
       background: #ff3b30;
       animation: pulseRecord 1s infinite alternate;
@@ -310,6 +321,11 @@
   <div class="app-shell">
     <div id="viewport">
       <video id="camera-feed" playsinline autoplay muted></video>
+      <div class="grid-overlay" id="grid-overlay">
+        <div class="grid-line"></div><div class="grid-line"></div><div class="grid-line"></div>
+        <div class="grid-line"></div><div class="grid-line"></div><div class="grid-line"></div>
+        <div class="grid-line"></div><div class="grid-line"></div><div class="grid-line"></div>
+      </div>
     </div>
 
     <!-- Top Bar -->
@@ -339,11 +355,10 @@
             <path d="M3 21v-5h5"></path>
           </svg>
         </button>
-        <button class="icon-btn" id="btn-ratio" title="Aspect Ratio">4:3</button>
       </div>
     </div>
 
-    <!-- Clean Stamp Card -->
+    <!-- Floating Stamp Card -->
     <div class="stamp-container" id="stamp-container">
       <div id="stamp-card">
         <div class="map-box">
@@ -357,34 +372,34 @@
         <div class="stamp-text">
           <div class="stamp-title" id="txt-city">Thanesar, Haryana, India 🇮🇳</div>
           <div class="stamp-address" id="txt-sub">Locating address...</div>
-          <!-- New Dedicated Site/Mill Name Line -->
-          <div class="stamp-custom-tag" id="txt-tag" contenteditable="true" spellcheck="false" title="Tap to type Mill or Road name">🏷️ Site: Aggarwal Rice Mill</div>
+          <div class="stamp-custom-tag" id="txt-tag" contenteditable="true" spellcheck="false" title="Tap to name Mill or Road">🏷️ Site: Aggarwal Rice Mill</div>
           <div id="txt-coords">Lat 0.000000° Long 0.000000°</div>
           <div id="txt-time">--/--/---- --:-- --</div>
-          <div class="stamp-note" id="txt-note" contenteditable="true" spellcheck="false">Note: Captured by GPS Camera Pro</div>
+          <div class="stamp-note" id="txt-note">Note: Captured by GPS Camera Pro</div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Controls & Shutter -->
+    <!-- Bottom Controls -->
     <div class="bottom-section">
-      <!-- Mode Toggle: PHOTO or VIDEO -->
       <div class="mode-selector">
         <span class="mode-btn active" id="mode-photo">PHOTO</span>
         <span class="mode-btn" id="mode-video">VIDEO</span>
       </div>
 
       <div class="bottom-bar">
-        <!-- Satellite / Map View -->
-        <button class="icon-btn" id="btn-map-type" title="Map Style">
+        <!-- Framing Grid Toggle -->
+        <button class="icon-btn" id="btn-grid" title="Alignment Grid">
           <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
           </svg>
         </button>
 
-        <!-- Shutter (Photo Click / Video Record) -->
+        <!-- Shutter Button -->
         <button class="shutter-btn" id="btn-shutter" title="Shutter">
           <div class="shutter-inner"></div>
         </button>
@@ -411,7 +426,6 @@
     const txtTag = document.getElementById('txt-tag');
     const txtCoords = document.getElementById('txt-coords');
     const txtTime = document.getElementById('txt-time');
-    const txtNote = document.getElementById('txt-note');
     const gpsStatus = document.getElementById('gps-status');
     const svgTorch = document.getElementById('svg-torch');
     const stampContainer = document.getElementById('stamp-container');
@@ -420,6 +434,7 @@
     const modeVideo = document.getElementById('mode-video');
     const recordTimer = document.getElementById('record-timer');
     const timerVal = document.getElementById('timer-val');
+    const gridOverlay = document.getElementById('grid-overlay');
 
     let currentStream = null;
     let track = null;
@@ -427,11 +442,9 @@
     let torchState = false;
     let currentLat = null;
     let currentLng = null;
-    let isSatellite = true;
-    let isFullRatio = false;
-    let isAtTop = false; // Strict 2-Tap state
+    let isAtTop = false;
 
-    let currentMode = "photo"; // "photo" | "video"
+    let currentMode = "photo";
     let mediaRecorder = null;
     let recordedChunks = [];
     let isRecording = false;
@@ -463,7 +476,7 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // 2. Camera Stream
+    // 2. Camera Stream Setup
     async function startCamera() {
       if (currentStream) currentStream.getTracks().forEach(t => t.stop());
       try {
@@ -473,7 +486,7 @@
             width: { ideal: 1920 },
             height: { ideal: 1080 }
           },
-          audio: true // Enabled for video recording
+          audio: true
         };
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
@@ -487,13 +500,12 @@
           video.classList.remove('mirrored');
         }
       } catch (err) {
-        // Fallback without audio if mic rejected
         try {
           currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode } } });
           video.srcObject = currentStream;
           track = currentStream.getVideoTracks()[0];
         } catch (e) {
-          console.error("Camera fail", e);
+          console.error("Camera access failed", e);
         }
       }
     }
@@ -515,19 +527,12 @@
       } catch (e) {}
     });
 
-    const btnRatio = document.getElementById('btn-ratio');
-    btnRatio.addEventListener('click', () => {
-      isFullRatio = !isFullRatio;
-      if (isFullRatio) {
-        video.classList.remove('ratio-4-3');
-        btnRatio.textContent = "Full";
-      } else {
-        video.classList.add('ratio-4-3');
-        btnRatio.textContent = "4:3";
-      }
+    // Grid Toggle
+    document.getElementById('btn-grid').addEventListener('click', () => {
+      gridOverlay.classList.toggle('active');
     });
 
-    // 3. Strict 2-Tap Position Switcher
+    // 2-Tap Position Switcher (Bottom <-> Top)
     document.getElementById('btn-pos').addEventListener('click', () => {
       isAtTop = !isAtTop;
       if (isAtTop) {
@@ -537,25 +542,18 @@
       }
     });
 
-    // 4. Map Tiles
-    function updateMapTile(lat, lng) {
+    // 3. High-Res Satellite Tiles
+    function updateSatelliteTile(lat, lng) {
       const zoom = 17;
       const n = Math.pow(2, zoom);
       const xtile = Math.floor((lng + 180) / 360 * n);
       const ytile = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n);
 
       mapImg.crossOrigin = "anonymous";
-      mapImg.src = isSatellite
-        ? `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ytile}/${xtile}`
-        : `https://tile.openstreetmap.org/${zoom}/${xtile}/${ytile}.png`;
+      mapImg.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ytile}/${xtile}`;
     }
 
-    document.getElementById('btn-map-type').addEventListener('click', () => {
-      isSatellite = !isSatellite;
-      if (currentLat && currentLng) updateMapTile(currentLat, currentLng);
-    });
-
-    // 5. High Accuracy Location Lock
+    // 4. Geolocation Engine
     async function reverseGeocode(lat, lng) {
       try {
         const bdc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
@@ -578,7 +576,7 @@
           currentLng = pos.coords.longitude;
           gpsStatus.textContent = `GPS: ±${Math.round(pos.coords.accuracy)}m`;
           txtCoords.textContent = `Lat ${currentLat.toFixed(6)}° Long ${currentLng.toFixed(6)}°`;
-          updateMapTile(currentLat, currentLng);
+          updateSatelliteTile(currentLat, currentLng);
           reverseGeocode(currentLat, currentLng);
         },
         () => { gpsStatus.textContent = "GPS Unavailable"; },
@@ -586,7 +584,7 @@
       );
     }
 
-    // 6. Mode Switcher (PHOTO / VIDEO)
+    // 5. Mode Switcher (PHOTO / VIDEO)
     modePhoto.addEventListener('click', () => {
       if (isRecording) return;
       currentMode = "photo";
@@ -602,7 +600,6 @@
       btnShutter.classList.add('video-mode');
     });
 
-    // 7. Shutter Handler (Photo Capture OR Video Record)
     btnShutter.addEventListener('click', () => {
       if (currentMode === "photo") {
         capturePhoto();
@@ -611,12 +608,13 @@
       }
     });
 
+    // 6. Floating Rounded Card Stamp Drawer (Photos)
     function drawStampedFrame(targetCanvas) {
       targetCanvas.width = video.videoWidth;
       targetCanvas.height = video.videoHeight;
       const ctx = targetCanvas.getContext('2d');
 
-      // 1. Draw Camera Feed
+      // Draw camera image
       ctx.save();
       if (facingMode === "user") {
         ctx.scale(-1, 1);
@@ -626,52 +624,61 @@
       }
       ctx.restore();
 
-      // 2. Responsive Stamp (adapts to Portrait or Landscape)
+      // Rounded Floating Card Dimensions
       const isLandscape = targetCanvas.width > targetCanvas.height;
-      const stampHeight = isLandscape ? Math.round(targetCanvas.height * 0.22) : Math.round(targetCanvas.height * 0.17);
-      const stampY = isAtTop ? 0 : (targetCanvas.height - stampHeight);
+      const cardMargin = Math.round(targetCanvas.width * 0.03);
+      const cardWidth = targetCanvas.width - (cardMargin * 2);
+      const cardHeight = isLandscape ? Math.round(targetCanvas.height * 0.22) : Math.round(targetCanvas.height * 0.17);
+      const cardY = isAtTop ? cardMargin : (targetCanvas.height - cardHeight - cardMargin);
+      const cornerRadius = 24;
 
-      // Card Backdrop
-      ctx.fillStyle = 'rgba(10, 14, 20, 0.88)';
-      ctx.fillRect(0, stampY, targetCanvas.width, stampHeight);
+      // Draw Translucent Rounded Card
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(cardMargin, cardY, cardWidth, cardHeight, cornerRadius);
+      } else {
+        ctx.rect(cardMargin, cardY, cardWidth, cardHeight);
+      }
+      ctx.fillStyle = 'rgba(12, 16, 22, 0.88)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.clip(); // Keeps content clipped inside rounded card
 
-      // Divider Line
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-      const lineY = isAtTop ? stampHeight : stampY;
-      ctx.fillRect(0, lineY, targetCanvas.width, 2);
-
-      // Render Map Thumbnail
-      const mapPadding = Math.round(stampHeight * 0.08);
-      const mapSize = stampHeight - (mapPadding * 2);
-      const mapX = mapPadding * 2;
-      const mapDrawY = stampY + mapPadding;
+      // Render Rounded Map Thumbnail
+      const mapPadding = Math.round(cardHeight * 0.1);
+      const mapSize = cardHeight - (mapPadding * 2);
+      const mapX = cardMargin + mapPadding;
+      const mapY = cardY + mapPadding;
 
       try {
         if (mapImg.complete && mapImg.naturalWidth !== 0) {
           ctx.save();
           ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(mapX, mapDrawY, mapSize, mapSize, 8);
-          else ctx.rect(mapX, mapDrawY, mapSize, mapSize);
+          if (ctx.roundRect) ctx.roundRect(mapX, mapY, mapSize, mapSize, 14);
+          else ctx.rect(mapX, mapY, mapSize, mapSize);
           ctx.clip();
-          ctx.drawImage(mapImg, mapX, mapDrawY, mapSize, mapSize);
+          ctx.drawImage(mapImg, mapX, mapY, mapSize, mapSize);
           ctx.restore();
 
-          ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
           ctx.lineWidth = 2;
-          ctx.strokeRect(mapX, mapDrawY, mapSize, mapSize);
+          ctx.strokeRect(mapX, mapY, mapSize, mapSize);
 
           ctx.fillStyle = '#ff3b30';
           ctx.beginPath();
-          ctx.arc(mapX + mapSize / 2, mapDrawY + mapSize / 2, 7, 0, Math.PI * 2);
+          ctx.arc(mapX + mapSize / 2, mapY + mapSize / 2, 7, 0, Math.PI * 2);
           ctx.fill();
         }
       } catch (e) {}
 
-      // Draw Clamped Text Elements (Won't overflow)
-      const textX = mapX + mapSize + (mapPadding * 2);
-      const maxTextWidth = targetCanvas.width - textX - (mapPadding * 2);
-      let textY = stampY + (stampHeight * 0.20);
-      const fontSize = isLandscape ? Math.round(stampHeight * 0.13) : Math.round(stampHeight * 0.12);
+      // Draw Stamped Text
+      const textX = mapX + mapSize + (mapPadding * 1.5);
+      const maxTextWidth = cardMargin + cardWidth - textX - mapPadding;
+      let textY = cardY + (cardHeight * 0.20);
+      const fontSize = isLandscape ? Math.round(cardHeight * 0.13) : Math.round(cardHeight * 0.12);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${fontSize + 3}px sans-serif`;
@@ -682,13 +689,11 @@
       textY += fontSize * 1.30;
       ctx.fillText(txtSub.textContent, textX, textY, maxTextWidth);
 
-      // Render Site / Mill Name Tag
       ctx.font = `bold ${fontSize}px sans-serif`;
       ctx.fillStyle = '#4cd964';
       textY += fontSize * 1.30;
       ctx.fillText(txtTag.textContent, textX, textY, maxTextWidth);
 
-      // Coordinates & Time
       ctx.font = `${fontSize}px sans-serif`;
       ctx.fillStyle = '#cbd5e1';
       textY += fontSize * 1.30;
@@ -697,9 +702,12 @@
       textY += fontSize * 1.30;
       ctx.fillText(txtTime.textContent, textX, textY, maxTextWidth);
 
+      // Permanently Fixed Note Line
       ctx.fillStyle = '#94a3b8';
       textY += fontSize * 1.30;
-      ctx.fillText(txtNote.textContent, textX, textY, maxTextWidth);
+      ctx.fillText("Note: Captured by GPS Camera Pro", textX, textY, maxTextWidth);
+
+      ctx.restore();
     }
 
     function capturePhoto() {
@@ -718,7 +726,7 @@
       }, 'image/jpeg', 0.95);
     }
 
-    // Video Recording with Live Render
+    // 7. Smooth Zero-Lag Hardware Video Recorder
     function toggleVideoRecording() {
       if (!isRecording) {
         startRecording();
@@ -728,37 +736,28 @@
     }
 
     function startRecording() {
+      if (!currentStream) return;
       recordedChunks = [];
-      const renderCanvas = document.createElement('canvas');
-      renderCanvas.width = video.videoWidth || 1280;
-      renderCanvas.height = video.videoHeight || 720;
-      
-      const stream = renderCanvas.captureStream(30);
 
-      // Include audio track if available
-      if (currentStream && currentStream.getAudioTracks().length > 0) {
-        stream.addTrack(currentStream.getAudioTracks()[0]);
+      try {
+        const options = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+          ? { mimeType: 'video/mp4;codecs=avc1' }
+          : { mimeType: 'video/webm;codecs=vp8' };
+
+        mediaRecorder = new MediaRecorder(currentStream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(currentStream);
       }
 
-      // Continuously draw live stamped frames during video
-      let renderLoop = true;
-      function loop() {
-        if (!renderLoop) return;
-        drawStampedFrame(renderCanvas);
-        requestAnimationFrame(loop);
-      }
-      requestAnimationFrame(loop);
-
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        renderLoop = false;
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const ext = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
         const link = document.createElement('a');
-        link.download = `GPS_Video_${Date.now()}.webm`;
+        link.download = `GPS_Video_${Date.now()}.${ext}`;
         link.href = URL.createObjectURL(blob);
         document.body.appendChild(link);
         link.click();
