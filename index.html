@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>GPS Camera Pro</title>
   <link rel="manifest" href="manifest.json" />
   <script>
@@ -29,8 +31,7 @@
       color: #fff;
     }
 
-    /* Screen Wrapper */
-    .app-viewport {
+    .app-shell {
       position: relative;
       width: 100%;
       height: 100dvh;
@@ -40,68 +41,96 @@
       overflow: hidden;
     }
 
-    #camera-feed {
+    /* Viewfinder Container */
+    #viewport {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #000;
       z-index: 1;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: aspect-ratio 0.2s ease;
+    }
+    video.ratio-4-3 {
+      height: auto;
+      aspect-ratio: 3/4;
     }
     .mirrored {
       transform: scaleX(-1);
     }
 
-    /* Top Bar */
+    /* Subtle Horizon Line */
+    .level-guide {
+      position: absolute;
+      width: 60px;
+      height: 2px;
+      background: rgba(0, 255, 100, 0.45);
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Top Action Bar */
     .top-bar {
       position: relative;
       z-index: 10;
-      padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 12px 16px;
+      padding: calc(env(safe-area-inset-top, 8px) + 8px) 14px 10px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, transparent 100%);
     }
     .gps-pill {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(8px);
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(18, 22, 28, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.18);
     }
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       background: #00ff66;
       border-radius: 50%;
       box-shadow: 0 0 8px #00ff66;
     }
     .top-actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
     .icon-btn {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(18, 22, 28, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.18);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
       cursor: pointer;
-      padding: 0;
+      font-size: 11px;
+      font-weight: 700;
     }
     .icon-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 19px;
+      height: 19px;
       fill: none;
       stroke: currentColor;
       stroke-width: 2;
@@ -109,38 +138,42 @@
       stroke-linejoin: round;
     }
 
-    /* Lower Section: Stamp + Shutter Bar */
-    .bottom-section {
-      position: relative;
+    /* Stamp Overlay */
+    .stamp-container {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 102px;
       z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 12px);
-      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .stamp-container.pos-top {
+      bottom: auto;
+      top: 64px;
+    }
+    .stamp-container.pos-compact {
+      right: 40px;
     }
 
-    /* Stamp Overlay */
     #stamp-card {
-      margin: 0 12px;
-      background: rgba(18, 22, 28, 0.88);
-      backdrop-filter: blur(12px);
+      background: rgba(12, 16, 22, 0.86);
+      backdrop-filter: blur(14px);
       border-radius: 12px;
-      padding: 10px;
+      padding: 10px 12px;
       display: flex;
-      gap: 10px;
-      border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      gap: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     }
     .map-box {
-      width: 84px;
-      height: 84px;
+      width: 82px;
+      height: 82px;
       border-radius: 8px;
       overflow: hidden;
       flex-shrink: 0;
       position: relative;
-      background: #111;
-      border: 1px solid rgba(255,255,255,0.2);
+      background: #151515;
+      border: 1px solid rgba(255,255,255,0.22);
     }
     .map-box img {
       width: 100%;
@@ -155,6 +188,7 @@
       transform: translate(-50%, -100%);
       color: #ff3b30;
       pointer-events: none;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
     }
     .stamp-text {
       flex: 1;
@@ -163,23 +197,36 @@
       justify-content: center;
       gap: 2px;
       font-size: 11px;
-      line-height: 1.35;
-      color: #e5e5e5;
+      line-height: 1.34;
+      color: #e2e8f0;
       min-width: 0;
     }
     .stamp-title {
       font-size: 13px;
       font-weight: 700;
       color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      outline: none;
+    }
+    .stamp-address {
+      color: #cbd5e1;
+      outline: none;
+      border-bottom: 1px dashed rgba(255,255,255,0.18);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: fit-content;
+      max-width: 100%;
     }
     .stamp-note {
-      color: #a0a0a0;
+      color: #94a3b8;
       outline: none;
-      border-bottom: 1px dashed rgba(255,255,255,0.25);
-      display: inline-block;
+      border-bottom: 1px dashed rgba(255,255,255,0.2);
       width: fit-content;
       max-width: 100%;
       white-space: nowrap;
@@ -187,16 +234,19 @@
       text-overflow: ellipsis;
     }
 
-    /* Shutter Bar */
-    .shutter-bar {
+    /* Bottom Control Bar */
+    .bottom-bar {
+      position: relative;
+      z-index: 10;
       display: flex;
       justify-content: space-around;
       align-items: center;
-      padding: 4px 20px 6px 20px;
+      padding: 6px 20px calc(env(safe-area-inset-bottom, 12px) + 12px) 20px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
     }
     .shutter-btn {
-      width: 70px;
-      height: 70px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       border: 4px solid #fff;
       background: transparent;
@@ -208,12 +258,13 @@
       height: 100%;
       border-radius: 50%;
       background: #fff;
-      transition: transform 0.08s ease;
+      transition: transform 0.08s ease, background-color 0.08s ease;
     }
     .shutter-btn:active .shutter-inner {
       transform: scale(0.9);
-      background: #ddd;
+      background: #cbd5e1;
     }
+
     #hidden-canvas {
       display: none;
     }
@@ -221,18 +272,22 @@
 </head>
 <body>
 
-  <div class="app-viewport">
-    <video id="camera-feed" playsinline autoplay muted></video>
+  <div class="app-shell">
+    <!-- Camera Sensor Layer -->
+    <div id="viewport">
+      <video id="camera-feed" playsinline autoplay muted></video>
+      <div class="level-guide"></div>
+    </div>
 
-    <!-- Top Bar Controls -->
+    <!-- Top Bar Controls (Mockup Row 1) -->
     <div class="top-bar">
       <div class="gps-pill">
         <div class="pulse-dot"></div>
         <span id="gps-status">GPS: Searching...</span>
       </div>
       <div class="top-actions">
-        <!-- Torch Button with Inline SVG -->
-        <button class="icon-btn" id="btn-torch" title="Flash">
+        <!-- Flash / Torch Toggle -->
+        <button class="icon-btn" id="btn-torch" title="Torch">
           <svg id="svg-torch" viewBox="0 0 24 24">
             <line x1="2" y1="2" x2="22" y2="22"></line>
             <path d="M12.41 6.75 13 2l-2.43 2.92"></path>
@@ -240,7 +295,7 @@
             <path d="M8 8l-5 6h9l-1 8 5-6"></path>
           </svg>
         </button>
-        <!-- Camera Flip Button -->
+        <!-- Flip Camera -->
         <button class="icon-btn" id="btn-flip" title="Flip Camera">
           <svg viewBox="0 0 24 24">
             <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
@@ -249,15 +304,16 @@
             <path d="M3 21v-5h5"></path>
           </svg>
         </button>
+        <!-- Aspect Ratio Toggle -->
+        <button class="icon-btn" id="btn-ratio" title="Aspect Ratio">4:3</button>
       </div>
     </div>
 
-    <!-- Bottom Controls Area -->
-    <div class="bottom-section">
-      <!-- Stamp View -->
+    <!-- Live Stamp Overlay (Tap to Edit Details) -->
+    <div class="stamp-container" id="stamp-container">
       <div id="stamp-card">
         <div class="map-box">
-          <img id="map-img" crossorigin="anonymous" alt="Map View" />
+          <img id="map-img" crossorigin="anonymous" alt="Satellite Tile" />
           <div class="map-pin">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff3b30">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/>
@@ -265,28 +321,40 @@
           </div>
         </div>
         <div class="stamp-text">
-          <div class="stamp-title" id="txt-city">Locating... 🇮🇳</div>
-          <div id="txt-sub">Detecting address...</div>
+          <div class="stamp-title" id="txt-city" contenteditable="true" spellcheck="false">Kurukshetra, Haryana, India 🇮🇳</div>
+          <div class="stamp-address" id="txt-sub" contenteditable="true" spellcheck="false" title="Tap to type exact house/plot number">Sector 4, Kurukshetra 136118</div>
           <div id="txt-coords">Lat 0.000000° Long 0.000000°</div>
           <div id="txt-time">--/--/---- --:-- --</div>
           <div class="stamp-note" id="txt-note" contenteditable="true" spellcheck="false">Note : Captured by GPS Camera Pro</div>
         </div>
       </div>
+    </div>
 
-      <!-- Shutter Row -->
-      <div class="shutter-bar">
-        <button class="icon-btn" id="btn-map-type" title="Switch Map View">
-          <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-        </button>
-        <button class="shutter-btn" id="btn-shutter">
-          <div class="shutter-inner"></div>
-        </button>
-        <div style="width: 42px;"></div>
-      </div>
+    <!-- Bottom Action Bar (Mockup Row 2) -->
+    <div class="bottom-bar">
+      <!-- Toggle Map Style (Satellite vs Street) -->
+      <button class="icon-btn" id="btn-map-type" title="Map Style">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+      </button>
+
+      <!-- Capture Shutter -->
+      <button class="shutter-btn" id="btn-shutter" title="Capture">
+        <div class="shutter-inner"></div>
+      </button>
+
+      <!-- Move Stamp Position (BL -> Top -> Compact) -->
+      <button class="icon-btn" id="btn-pos" title="Move Stamp">
+        <svg viewBox="0 0 24 24">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -303,6 +371,7 @@
     const txtNote = document.getElementById('txt-note');
     const gpsStatus = document.getElementById('gps-status');
     const svgTorch = document.getElementById('svg-torch');
+    const stampContainer = document.getElementById('stamp-container');
 
     let currentStream = null;
     let track = null;
@@ -310,12 +379,11 @@
     let torchState = false;
     let currentLat = null;
     let currentLng = null;
-    let currentAddress = "Detecting address...";
-    let currentCity = "Kurukshetra, Haryana, India 🇮🇳";
     let isSatellite = true;
+    let isFullRatio = false;
+    let stampPosMode = 0; // 0: bottom, 1: top, 2: compact
 
-    // SVG icon templates
-    const iconZapOn = `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"></polygon>`;
+    const iconZapOn = `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="#ffd60a"></polygon>`;
     const iconZapOff = `
       <line x1="2" y1="2" x2="22" y2="22"></line>
       <path d="M12.41 6.75 13 2l-2.43 2.92"></path>
@@ -367,7 +435,7 @@
           video.classList.remove('mirrored');
         }
       } catch (err) {
-        console.error("Camera access error:", err);
+        console.error("Camera startup failed", err);
       }
     }
 
@@ -388,8 +456,29 @@
           svgTorch.innerHTML = torchState ? iconZapOn : iconZapOff;
         }
       } catch (e) {
-        console.warn("Torch constraint not applied", e);
+        console.warn("Torch failed", e);
       }
+    });
+
+    // Toggle Aspect Ratio (4:3 vs Full)
+    const btnRatio = document.getElementById('btn-ratio');
+    btnRatio.addEventListener('click', () => {
+      isFullRatio = !isFullRatio;
+      if (isFullRatio) {
+        video.classList.remove('ratio-4-3');
+        btnRatio.textContent = "Full";
+      } else {
+        video.classList.add('ratio-4-3');
+        btnRatio.textContent = "4:3";
+      }
+    });
+
+    // Cycle Stamp Position
+    document.getElementById('btn-pos').addEventListener('click', () => {
+      stampPosMode = (stampPosMode + 1) % 3;
+      stampContainer.classList.remove('pos-top', 'pos-compact');
+      if (stampPosMode === 1) stampContainer.classList.add('pos-top');
+      if (stampPosMode === 2) stampContainer.classList.add('pos-compact');
     });
 
     // 3. Tile Generation (CORS Enabled)
@@ -412,10 +501,48 @@
       if (currentLat && currentLng) updateMapTile(currentLat, currentLng);
     });
 
-    // Geolocation Watcher
+    // 4. Geocoding Engine (Building/House Precision)
+    async function resolveDetailedAddress(lat, lng) {
+      // 1. Try BigDataCloud Client Reverse Geocode (free client reverse with building/locality granularity)
+      try {
+        const bdc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+        const bData = await bdc.json();
+        if (bData && (bData.locality || bData.principalSubdivision)) {
+          const house = bData.localityInfo?.informative?.[0]?.name ? `${bData.localityInfo.informative[0].name}, ` : "";
+          const street = bData.locality || "Sector 4";
+          const city = bData.city || bData.locality || "Kurukshetra";
+          const state = bData.principalSubdivision || "Haryana";
+          const country = bData.countryName || "India";
+          const post = bData.postcode ? ` ${bData.postcode}` : "";
+
+          txtCity.textContent = `${city}, ${state}, ${country} 🇮🇳`;
+          txtSub.textContent = `${house}${street}, ${city}${post}`;
+          return;
+        }
+      } catch (e) {}
+
+      // 2. Fallback to OpenStreetMap Reverse
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const a = data.address || {};
+        const houseNum = a.house_number ? `${a.house_number}, ` : "";
+        const road = a.road || a.suburb || a.neighbourhood || "Sector 4";
+        const city = a.city || a.town || a.county || "Kurukshetra";
+        const state = a.state || "Haryana";
+        const country = a.country || "India";
+        const postcode = a.postcode ? ` ${a.postcode}` : "";
+
+        txtCity.textContent = `${city}, ${state}, ${country} 🇮🇳`;
+        txtSub.textContent = `${houseNum}${road}, ${city}${postcode}`.trim();
+      } catch (err) {
+        txtCity.textContent = `Kurukshetra, Haryana, India 🇮🇳`;
+      }
+    }
+
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
-        async (pos) => {
+        (pos) => {
           currentLat = pos.coords.latitude;
           currentLng = pos.coords.longitude;
           const acc = Math.round(pos.coords.accuracy);
@@ -423,36 +550,16 @@
           gpsStatus.textContent = `GPS: ±${acc}m`;
           txtCoords.textContent = `Lat ${currentLat.toFixed(6)}° Long ${currentLng.toFixed(6)}°`;
           updateMapTile(currentLat, currentLng);
-
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${currentLat}&lon=${currentLng}`);
-            const data = await res.json();
-            const a = data.address || {};
-            
-            const city = a.city || a.town || a.county || a.state_district || "Kurukshetra";
-            const state = a.state || "Haryana";
-            const country = a.country || "India";
-            const road = a.road || a.suburb || a.residential || a.neighbourhood || "Sector 4";
-            const postcode = a.postcode || "";
-
-            currentCity = `${city}, ${state}, ${country} 🇮🇳`;
-            currentAddress = `${road}, ${city} ${postcode}`.trim();
-
-            txtCity.innerHTML = currentCity;
-            txtSub.textContent = currentAddress;
-          } catch (e) {
-            txtCity.innerHTML = `Kurukshetra, Haryana, India 🇮🇳`;
-            txtSub.textContent = `Lat: ${currentLat.toFixed(5)}, Long: ${currentLng.toFixed(5)}`;
-          }
+          resolveDetailedAddress(currentLat, currentLng);
         },
         () => {
-          gpsStatus.textContent = "GPS Offline";
+          gpsStatus.textContent = "GPS Unavailable";
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
 
-    // 4. Stamped Capture Engine
+    // 5. Stamped Photo Processing & Save
     document.getElementById('btn-shutter').addEventListener('click', () => {
       if (!video.videoWidth || !video.videoHeight) return;
 
@@ -460,7 +567,7 @@
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
 
-      // Draw camera sensor frame
+      // Draw camera sensor frame (handling mirror)
       ctx.save();
       if (facingMode === "user") {
         ctx.scale(-1, 1);
@@ -470,17 +577,18 @@
       }
       ctx.restore();
 
-      // Build Edge-to-Edge Stamp at Bottom
+      // Stamp Placement (Adapts to posMode: Bottom vs Top)
       const stampHeight = Math.round(canvas.height * 0.16);
-      const stampY = canvas.height - stampHeight;
+      const stampY = (stampPosMode === 1) ? 0 : (canvas.height - stampHeight);
 
-      // Dark translucent backdrop
-      ctx.fillStyle = 'rgba(12, 16, 22, 0.88)';
+      // Translucent Backdrop
+      ctx.fillStyle = 'rgba(10, 14, 20, 0.88)';
       ctx.fillRect(0, stampY, canvas.width, stampHeight);
 
-      // Top divider accent line
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-      ctx.fillRect(0, stampY, canvas.width, 2);
+      // Dividing Line
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+      const lineY = (stampPosMode === 1) ? stampHeight : stampY;
+      ctx.fillRect(0, lineY, canvas.width, 2);
 
       // Render Map Tile
       const mapPadding = Math.round(stampHeight * 0.1);
@@ -501,8 +609,8 @@
           ctx.drawImage(mapImg, mapX, mapDrawY, mapSize, mapSize);
           ctx.restore();
 
-          // Border & Pin
-          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          // Border & Center Pin
+          ctx.strokeStyle = 'rgba(255,255,255,0.45)';
           ctx.lineWidth = 2;
           ctx.strokeRect(mapX, mapDrawY, mapSize, mapSize);
 
@@ -514,23 +622,23 @@
           ctx.lineWidth = 2.5;
           ctx.stroke();
         }
-      } catch (corsErr) {
-        console.warn("Map image skipped in canvas due to cross-origin restriction.");
+      } catch (e) {
+        console.warn("Map frame skipped");
       }
 
-      // Draw Information Texts
+      // Draw Stamped Text
       const textX = mapX + mapSize + (mapPadding * 2);
       let textY = stampY + (stampHeight * 0.22);
       const fontSize = Math.round(stampHeight * 0.13);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${fontSize + 4}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial`;
-      ctx.fillText(currentCity, textX, textY);
+      ctx.fillText(txtCity.textContent, textX, textY);
 
       ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial`;
-      ctx.fillStyle = '#dcdcdc';
+      ctx.fillStyle = '#cbd5e1';
       textY += fontSize * 1.35;
-      ctx.fillText(currentAddress, textX, textY);
+      ctx.fillText(txtSub.textContent, textX, textY);
 
       textY += fontSize * 1.35;
       ctx.fillText(txtCoords.textContent, textX, textY);
@@ -539,14 +647,14 @@
       ctx.fillText(txtTime.textContent, textX, textY);
 
       textY += fontSize * 1.35;
-      ctx.fillStyle = '#a0a0a0';
+      ctx.fillStyle = '#94a3b8';
       ctx.fillText(txtNote.textContent, textX, textY);
 
-      // Trigger Instant Image Download / Save
+      // Download file to storage
       canvas.toBlob((blob) => {
         if (!blob) return;
         const link = document.createElement('a');
-        link.download = `GPS_Map_Photo_${Date.now()}.jpg`;
+        link.download = `GPS_Photo_${Date.now()}.jpg`;
         link.href = URL.createObjectURL(blob);
         document.body.appendChild(link);
         link.click();
