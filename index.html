@@ -216,22 +216,24 @@
     .stamp-address {
       color: #cbd5e1;
       outline: none;
-      border-bottom: 1px dashed rgba(255,255,255,0.18);
+      border-bottom: 1px dashed rgba(255,255,255,0.25);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       width: fit-content;
       max-width: 100%;
+      user-select: text;
     }
     .stamp-note {
       color: #94a3b8;
       outline: none;
-      border-bottom: 1px dashed rgba(255,255,255,0.2);
+      border-bottom: 1px dashed rgba(255,255,255,0.25);
       width: fit-content;
       max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      user-select: text;
     }
 
     /* Bottom Control Bar */
@@ -279,7 +281,7 @@
       <div class="level-guide"></div>
     </div>
 
-    <!-- Top Bar Controls (Mockup Row 1) -->
+    <!-- Top Bar Controls -->
     <div class="top-bar">
       <div class="gps-pill">
         <div class="pulse-dot"></div>
@@ -309,7 +311,7 @@
       </div>
     </div>
 
-    <!-- Live Stamp Overlay (Tap to Edit Details) -->
+    <!-- Live Stamp Overlay (Editable On-Screen) -->
     <div class="stamp-container" id="stamp-container">
       <div id="stamp-card">
         <div class="map-box">
@@ -322,7 +324,7 @@
         </div>
         <div class="stamp-text">
           <div class="stamp-title" id="txt-city" contenteditable="true" spellcheck="false">Kurukshetra, Haryana, India 🇮🇳</div>
-          <div class="stamp-address" id="txt-sub" contenteditable="true" spellcheck="false" title="Tap to type exact house/plot number">Sector 4, Kurukshetra 136118</div>
+          <div class="stamp-address" id="txt-sub" contenteditable="true" spellcheck="false" title="Tap to name your mill/road">Sector 4, Kurukshetra 136118</div>
           <div id="txt-coords">Lat 0.000000° Long 0.000000°</div>
           <div id="txt-time">--/--/---- --:-- --</div>
           <div class="stamp-note" id="txt-note" contenteditable="true" spellcheck="false">Note : Captured by GPS Camera Pro</div>
@@ -330,7 +332,7 @@
       </div>
     </div>
 
-    <!-- Bottom Action Bar (Mockup Row 2) -->
+    <!-- Bottom Action Bar -->
     <div class="bottom-bar">
       <!-- Toggle Map Style (Satellite vs Street) -->
       <button class="icon-btn" id="btn-map-type" title="Map Style">
@@ -346,7 +348,7 @@
         <div class="shutter-inner"></div>
       </button>
 
-      <!-- Move Stamp Position (BL -> Top -> Compact) -->
+      <!-- Move Stamp Position (Bottom -> Top -> Compact) -->
       <button class="icon-btn" id="btn-pos" title="Move Stamp">
         <svg viewBox="0 0 24 24">
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -382,6 +384,17 @@
     let isSatellite = true;
     let isFullRatio = false;
     let stampPosMode = 0; // 0: bottom, 1: top, 2: compact
+
+    // Flags to lock user-edited text across multiple clicks
+    let isCustomAddress = false;
+    let isCustomNote = false;
+
+    txtSub.addEventListener('input', () => {
+      isCustomAddress = true;
+    });
+    txtNote.addEventListener('input', () => {
+      isCustomNote = true;
+    });
 
     const iconZapOn = `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="#ffd60a"></polygon>`;
     const iconZapOff = `
@@ -435,7 +448,7 @@
           video.classList.remove('mirrored');
         }
       } catch (err) {
-        console.error("Camera startup failed", err);
+        console.error("Camera startup error", err);
       }
     }
 
@@ -501,9 +514,11 @@
       if (currentLat && currentLng) updateMapTile(currentLat, currentLng);
     });
 
-    // 4. Geocoding Engine (Building/House Precision)
+    // 4. Geocoding Engine (Locks if user has typed a name)
     async function resolveDetailedAddress(lat, lng) {
-      // 1. Try BigDataCloud Client Reverse Geocode (free client reverse with building/locality granularity)
+      // If user typed custom name, do not let GPS overwrite it
+      if (isCustomAddress) return;
+
       try {
         const bdc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
         const bData = await bdc.json();
@@ -516,12 +531,13 @@
           const post = bData.postcode ? ` ${bData.postcode}` : "";
 
           txtCity.textContent = `${city}, ${state}, ${country} 🇮🇳`;
-          txtSub.textContent = `${house}${street}, ${city}${post}`;
+          if (!isCustomAddress) {
+            txtSub.textContent = `${house}${street}, ${city}${post}`;
+          }
           return;
         }
       } catch (e) {}
 
-      // 2. Fallback to OpenStreetMap Reverse
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
         const data = await res.json();
@@ -534,7 +550,9 @@
         const postcode = a.postcode ? ` ${a.postcode}` : "";
 
         txtCity.textContent = `${city}, ${state}, ${country} 🇮🇳`;
-        txtSub.textContent = `${houseNum}${road}, ${city}${postcode}`.trim();
+        if (!isCustomAddress) {
+          txtSub.textContent = `${houseNum}${road}, ${city}${postcode}`.trim();
+        }
       } catch (err) {
         txtCity.textContent = `Kurukshetra, Haryana, India 🇮🇳`;
       }
@@ -577,7 +595,7 @@
       }
       ctx.restore();
 
-      // Stamp Placement (Adapts to posMode: Bottom vs Top)
+      // Stamp Placement (Bottom vs Top)
       const stampHeight = Math.round(canvas.height * 0.16);
       const stampY = (stampPosMode === 1) ? 0 : (canvas.height - stampHeight);
 
@@ -626,7 +644,7 @@
         console.warn("Map frame skipped");
       }
 
-      // Draw Stamped Text
+      // Draw Stamped Text (Uses your custom text)
       const textX = mapX + mapSize + (mapPadding * 2);
       let textY = stampY + (stampHeight * 0.22);
       const fontSize = Math.round(stampHeight * 0.13);
@@ -650,7 +668,7 @@
       ctx.fillStyle = '#94a3b8';
       ctx.fillText(txtNote.textContent, textX, textY);
 
-      // Download file to storage
+      // Download file directly
       canvas.toBlob((blob) => {
         if (!blob) return;
         const link = document.createElement('a');
